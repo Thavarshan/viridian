@@ -19,8 +19,7 @@ versioned API root. Readiness reflects completion of the FastAPI lifespan; the
 service has no required database, Redis, or model dependency yet.
 
 End-to-end checks live in `packages/e2e`, where one Playwright setup starts and
-tests both services. Deployment assets live outside the applications in
-`deploy/web` and `deploy/oracle`.
+tests both services. Web container packaging lives in `deploy/web`.
 
 The repository root owns shared editor, formatting, lint, and TypeScript
 settings, plus shared Python lint, type checking, and test discovery settings.

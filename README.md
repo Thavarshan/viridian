@@ -15,13 +15,12 @@ packages/
   e2e/                 Shared Playwright suites for web and agent-api
 deploy/
   web/                 Web container build configuration
-  oracle/              Oracle host and production deployment files
 nix/
   tasks.nix             devenv task definitions
 docs/
   architecture.md      Service boundaries and ownership
 .github/workflows/
-  ci.yml                CI, image publishing, and guarded manual deployment
+  ci.yml                CI and GHCR image publishing
 devenv.nix              Shared Nix development environment and build output
 devenv.yaml             devenv input sources and CLI version requirement
 package.json            Shared JavaScript tooling and monorepo commands
@@ -156,11 +155,8 @@ and a devenv Nix package output.
 GitHub Actions installs Nix and devenv, runs the shared devenv tasks, validates
 the Nix Python output, and runs the PostgreSQL-backed AdonisJS tests, shared
 Playwright suites, formatting, lint, type checks, audit, and production build.
-The web Dockerfile and Oracle deployment bundle live under `deploy/`. The
-existing workflow publishes the web image from `main` after checks pass.
-Deployment still requires a manually dispatched workflow with its deploy input
-enabled and the existing protected production environment; this setup does not
-deploy anything.
+The workflow publishes the web container image to GHCR from `main` after checks
+pass. It does not deploy the image to a host.
 
 ## Troubleshooting
 

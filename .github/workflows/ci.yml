@@ -1,4 +1,4 @@
-name: CI and Oracle deployment
+name: CI and GHCR publishing
 
 on:
   pull_request:
@@ -6,12 +6,6 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      deploy:
-        description: Deploy the verified main branch image to Oracle
-        required: true
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -122,17 +116,12 @@ jobs:
   publish:
     name: publish image
     needs: verify
-    if: >-
-      github.event_name == 'push' || (github.event_name == 'workflow_dispatch'
-      && inputs.deploy == true && github.ref == 'refs/heads/main')
+    if: github.event_name == 'push'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     permissions:
       contents: read
       packages: write
-    outputs:
-      image: ${{ steps.image.outputs.image }}
-      digest: ${{ steps.build.outputs.digest }}
     steps:
       - name: Check out source
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -150,11 +139,10 @@ jobs:
 
       - name: Create Buildx builder
         run: |
-          docker buildx create --name wire-builder --use
+          docker buildx create --name viridian-builder --use
           docker buildx inspect --bootstrap
 
       - name: Build and publish ARM64 image
-        id: build
         run: |
           docker buildx build \
             --pull \
@@ -167,112 +155,6 @@ jobs:
             --sbom=true \
             --provenance=mode=max \
             --push \
-            --metadata-file "$RUNNER_TEMP/build-metadata.json" \
             .
-          echo "digest=$(jq -r '."containerimage.digest"' \
-            "$RUNNER_TEMP/build-metadata.json")" >> "$GITHUB_OUTPUT"
         env:
           IMAGE: ${{ steps.image.outputs.image }}
-
-  deploy:
-    name: deploy to Oracle
-    needs: [verify, publish]
-    if: >-
-      github.event_name == 'workflow_dispatch' && inputs.deploy == true &&
-      github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    environment:
-      name: production
-    concurrency:
-      group: wire-production
-      cancel-in-progress: false
-    permissions:
-      contents: read
-    steps:
-      - name: Check out deployment files
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-
-      - name: Validate deployment target and image
-        env:
-          OCI_DEPLOY_HOST: ${{ vars.OCI_DEPLOY_HOST }}
-          OCI_DEPLOY_USER: ${{ vars.OCI_DEPLOY_USER }}
-          OCI_DEPLOY_PORT: ${{ vars.OCI_DEPLOY_PORT }}
-          IMAGE: ${{ needs.publish.outputs.image }}
-          DIGEST: ${{ needs.publish.outputs.digest }}
-        run: |
-          : "${OCI_DEPLOY_HOST:?Set production variable OCI_DEPLOY_HOST}"
-          : "${OCI_DEPLOY_USER:?Set production variable OCI_DEPLOY_USER}"
-          : "${IMAGE:?Image was not published}"
-          : "${DIGEST:?Image digest was not produced}"
-          OCI_DEPLOY_PORT="${OCI_DEPLOY_PORT:-22}"
-          if [[ ! "$OCI_DEPLOY_PORT" =~ ^[0-9]{1,5}$ ]]; then
-            echo 'OCI_DEPLOY_PORT must be a numeric TCP port.' >&2
-            exit 1
-          fi
-          if [[ ! "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]; then
-            echo 'The published image digest is not valid.' >&2
-            exit 1
-          fi
-          echo "OCI_DEPLOY_PORT=$OCI_DEPLOY_PORT" >> "$GITHUB_ENV"
-
-      - name: Configure SSH
-        env:
-          OCI_SSH_PRIVATE_KEY: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
-          OCI_SSH_KNOWN_HOSTS: ${{ secrets.OCI_SSH_KNOWN_HOSTS }}
-        run: |
-          : "${OCI_SSH_PRIVATE_KEY:?Set production secret OCI_SSH_PRIVATE_KEY}"
-          : "${OCI_SSH_KNOWN_HOSTS:?Set production secret OCI_SSH_KNOWN_HOSTS}"
-          install -m 700 -d "$HOME/.ssh"
-          printf '%s\n' "$OCI_SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
-          printf '%s\n' "$OCI_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
-          chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
-          ssh-keygen -y -f "$HOME/.ssh/id_ed25519" >/dev/null
-
-      - name: Copy Oracle deployment files
-        env:
-          OCI_DEPLOY_HOST: ${{ vars.OCI_DEPLOY_HOST }}
-          OCI_DEPLOY_USER: ${{ vars.OCI_DEPLOY_USER }}
-        run: |
-          target="${OCI_DEPLOY_USER}@${OCI_DEPLOY_HOST}"
-          ssh_options=(
-            -i "$HOME/.ssh/id_ed25519"
-            -o IdentitiesOnly=yes
-            -o BatchMode=yes
-            -o StrictHostKeyChecking=yes
-          )
-          scp -P "$OCI_DEPLOY_PORT" "${ssh_options[@]}" \
-            deploy/oracle/compose.yaml \
-            deploy/oracle/Caddyfile \
-            deploy/oracle/deploy.sh \
-            deploy/oracle/backup-postgres.sh \
-            "$target:/opt/wire/"
-          ssh -p "$OCI_DEPLOY_PORT" "${ssh_options[@]}" "$target" \
-            'chmod 750 /opt/wire/deploy.sh /opt/wire/backup-postgres.sh'
-
-      - name: Deploy the verified image
-        env:
-          OCI_DEPLOY_HOST: ${{ vars.OCI_DEPLOY_HOST }}
-          OCI_DEPLOY_USER: ${{ vars.OCI_DEPLOY_USER }}
-          GHCR_PULL_USERNAME: ${{ secrets.GHCR_PULL_USERNAME }}
-          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
-          IMAGE: ${{ needs.publish.outputs.image }}
-          DIGEST: ${{ needs.publish.outputs.digest }}
-        run: |
-          : "${GHCR_PULL_USERNAME:?Set production secret GHCR_PULL_USERNAME}"
-          : "${GHCR_PULL_TOKEN:?Set production secret GHCR_PULL_TOKEN}"
-          IMAGE_REF="${IMAGE}@${DIGEST}"
-          if [[ ! "$IMAGE_REF" =~ ^ghcr\.io/[a-z0-9._-]+/[a-z0-9._-]+@sha256:[a-f0-9]{64}$ ]]; then
-            echo 'Refusing to deploy an unverified image reference.' >&2
-            exit 1
-          fi
-          target="${OCI_DEPLOY_USER}@${OCI_DEPLOY_HOST}"
-          ssh_options=(
-            -i "$HOME/.ssh/id_ed25519"
-            -o IdentitiesOnly=yes
-            -o BatchMode=yes
-            -o StrictHostKeyChecking=yes
-          )
-          printf '%s\n%s\n' "$GHCR_PULL_USERNAME" "$GHCR_PULL_TOKEN" |
-            ssh -p "$OCI_DEPLOY_PORT" "${ssh_options[@]}" "$target" \
-              "bash /opt/wire/deploy.sh '$IMAGE_REF'"
