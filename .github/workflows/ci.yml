@@ -1,0 +1,278 @@
+name: CI and Oracle deployment
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy the verified main branch image to Oracle
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-review:
+    name: dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check dependency changes
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+
+  verify:
+    name: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      NODE_ENV: test
+      PORT: '3333'
+      HOST: 127.0.0.1
+      LOG_LEVEL: error
+      APP_KEY: '01234567890123456789012345678901'
+      APP_URL: http://127.0.0.1:3333
+      DB_HOST: 127.0.0.1
+      DB_PORT: '5432'
+      DB_USER: wire
+      DB_PASSWORD: wire
+      DB_DATABASE: wire_test
+      SESSION_DRIVER: memory
+      MAIL_MAILER: smtp
+      MAIL_FROM_NAME: Wire CI
+      MAIL_FROM_ADDRESS: noreply@example.test
+      SMTP_HOST: 127.0.0.1
+      SMTP_PORT: '1025'
+      SMTP_USERNAME: ''
+      SMTP_PASSWORD: ''
+    steps:
+      - name: Check out source
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure the devenv binary cache
+        uses: cachix/cachix-action@3ba601ff5bbb07c7220846facfa2cd81eeee15a1 # v16
+        with:
+          name: devenv
+
+      - name: Install devenv CLI
+        run: nix profile add nixpkgs#devenv
+
+      - name: Install application dependencies
+        run: devenv tasks run install:all
+
+      - name: Build Python Nix package
+        run: devenv build outputs.agent-api
+
+      - name: Install Playwright browser
+        shell: devenv shell -- bash -e {0}
+        working-directory: packages/e2e
+        run: |
+          npx playwright install --with-deps chromium
+
+      - name: Run monorepo checks
+        run: devenv tasks run ci:check
+
+      - name: Verify development services and shutdown
+        shell: devenv shell -- bash -e {0}
+        run: |
+          set -euo pipefail
+          cleanup() { devenv processes down; }
+          trap cleanup EXIT
+          devenv up -d
+          attempt=0
+          until curl --fail --silent http://127.0.0.1:3333/ >/dev/null \
+            && curl --fail --silent http://127.0.0.1:8000/health >/dev/null; do
+            attempt=$((attempt + 1))
+            if [ "$attempt" -ge 60 ]; then
+              echo 'Development services did not become ready within 60 seconds.' >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8000/openapi.json >/dev/null
+          devenv processes down
+          trap - EXIT
+          if curl --fail --silent --max-time 2 http://127.0.0.1:3333/ >/dev/null; then
+            echo 'AdonisJS is still listening after devenv processes down.' >&2
+            exit 1
+          fi
+          if curl --fail --silent --max-time 2 http://127.0.0.1:8000/health >/dev/null; then
+            echo 'FastAPI is still listening after devenv processes down.' >&2
+            exit 1
+          fi
+
+  publish:
+    name: publish image
+    needs: verify
+    if: >-
+      github.event_name == 'push' || (github.event_name == 'workflow_dispatch'
+      && inputs.deploy == true && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Resolve lowercase image name
+        id: image
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        run: |
+          printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io \
+            --username "$GITHUB_ACTOR" --password-stdin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Buildx builder
+        run: |
+          docker buildx create --name wire-builder --use
+          docker buildx inspect --bootstrap
+
+      - name: Build and publish ARM64 image
+        id: build
+        run: |
+          docker buildx build \
+            --pull \
+            --platform linux/arm64 \
+            --file deploy/web/Dockerfile \
+            --tag "${IMAGE}:sha-${GITHUB_SHA}" \
+            --label "org.opencontainers.image.source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --sbom=true \
+            --provenance=mode=max \
+            --push \
+            --metadata-file "$RUNNER_TEMP/build-metadata.json" \
+            .
+          echo "digest=$(jq -r '."containerimage.digest"' \
+            "$RUNNER_TEMP/build-metadata.json")" >> "$GITHUB_OUTPUT"
+        env:
+          IMAGE: ${{ steps.image.outputs.image }}
+
+  deploy:
+    name: deploy to Oracle
+    needs: [verify, publish]
+    if: >-
+      github.event_name == 'workflow_dispatch' && inputs.deploy == true &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: production
+    concurrency:
+      group: wire-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - name: Check out deployment files
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Validate deployment target and image
+        env:
+          OCI_DEPLOY_HOST: ${{ vars.OCI_DEPLOY_HOST }}
+          OCI_DEPLOY_USER: ${{ vars.OCI_DEPLOY_USER }}
+          OCI_DEPLOY_PORT: ${{ vars.OCI_DEPLOY_PORT }}
+          IMAGE: ${{ needs.publish.outputs.image }}
+          DIGEST: ${{ needs.publish.outputs.digest }}
+        run: |
+          : "${OCI_DEPLOY_HOST:?Set production variable OCI_DEPLOY_HOST}"
+          : "${OCI_DEPLOY_USER:?Set production variable OCI_DEPLOY_USER}"
+          : "${IMAGE:?Image was not published}"
+          : "${DIGEST:?Image digest was not produced}"
+          OCI_DEPLOY_PORT="${OCI_DEPLOY_PORT:-22}"
+          if [[ ! "$OCI_DEPLOY_PORT" =~ ^[0-9]{1,5}$ ]]; then
+            echo 'OCI_DEPLOY_PORT must be a numeric TCP port.' >&2
+            exit 1
+          fi
+          if [[ ! "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+            echo 'The published image digest is not valid.' >&2
+            exit 1
+          fi
+          echo "OCI_DEPLOY_PORT=$OCI_DEPLOY_PORT" >> "$GITHUB_ENV"
+
+      - name: Configure SSH
+        env:
+          OCI_SSH_PRIVATE_KEY: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+          OCI_SSH_KNOWN_HOSTS: ${{ secrets.OCI_SSH_KNOWN_HOSTS }}
+        run: |
+          : "${OCI_SSH_PRIVATE_KEY:?Set production secret OCI_SSH_PRIVATE_KEY}"
+          : "${OCI_SSH_KNOWN_HOSTS:?Set production secret OCI_SSH_KNOWN_HOSTS}"
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$OCI_SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$OCI_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+          ssh-keygen -y -f "$HOME/.ssh/id_ed25519" >/dev/null
+
+      - name: Copy Oracle deployment files
+        env:
+          OCI_DEPLOY_HOST: ${{ vars.OCI_DEPLOY_HOST }}
+          OCI_DEPLOY_USER: ${{ vars.OCI_DEPLOY_USER }}
+        run: |
+          target="${OCI_DEPLOY_USER}@${OCI_DEPLOY_HOST}"
+          ssh_options=(
+            -i "$HOME/.ssh/id_ed25519"
+            -o IdentitiesOnly=yes
+            -o BatchMode=yes
+            -o StrictHostKeyChecking=yes
+          )
+          scp -P "$OCI_DEPLOY_PORT" "${ssh_options[@]}" \
+            deploy/oracle/compose.yaml \
+            deploy/oracle/Caddyfile \
+            deploy/oracle/deploy.sh \
+            deploy/oracle/backup-postgres.sh \
+            "$target:/opt/wire/"
+          ssh -p "$OCI_DEPLOY_PORT" "${ssh_options[@]}" "$target" \
+            'chmod 750 /opt/wire/deploy.sh /opt/wire/backup-postgres.sh'
+
+      - name: Deploy the verified image
+        env:
+          OCI_DEPLOY_HOST: ${{ vars.OCI_DEPLOY_HOST }}
+          OCI_DEPLOY_USER: ${{ vars.OCI_DEPLOY_USER }}
+          GHCR_PULL_USERNAME: ${{ secrets.GHCR_PULL_USERNAME }}
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+          IMAGE: ${{ needs.publish.outputs.image }}
+          DIGEST: ${{ needs.publish.outputs.digest }}
+        run: |
+          : "${GHCR_PULL_USERNAME:?Set production secret GHCR_PULL_USERNAME}"
+          : "${GHCR_PULL_TOKEN:?Set production secret GHCR_PULL_TOKEN}"
+          IMAGE_REF="${IMAGE}@${DIGEST}"
+          if [[ ! "$IMAGE_REF" =~ ^ghcr\.io/[a-z0-9._-]+/[a-z0-9._-]+@sha256:[a-f0-9]{64}$ ]]; then
+            echo 'Refusing to deploy an unverified image reference.' >&2
+            exit 1
+          fi
+          target="${OCI_DEPLOY_USER}@${OCI_DEPLOY_HOST}"
+          ssh_options=(
+            -i "$HOME/.ssh/id_ed25519"
+            -o IdentitiesOnly=yes
+            -o BatchMode=yes
+            -o StrictHostKeyChecking=yes
+          )
+          printf '%s\n%s\n' "$GHCR_PULL_USERNAME" "$GHCR_PULL_TOKEN" |
+            ssh -p "$OCI_DEPLOY_PORT" "${ssh_options[@]}" "$target" \
+              "bash /opt/wire/deploy.sh '$IMAGE_REF'"

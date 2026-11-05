@@ -1,0 +1,16 @@
+**/node_modules/
+**/.venv/
+**/build/
+**/dist/
+**/*.egg-info/
+**/.adonisjs/
+**/tmp/
+**/public/assets/
+**/coverage/
+**/playwright-report/
+**/test-results/
+**/.mypy_cache/
+**/.pytest_cache/
+**/.ruff_cache/
+.direnv/
+.devenv/

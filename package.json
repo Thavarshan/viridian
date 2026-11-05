@@ -1,0 +1,36 @@
+{
+  "name": "@viridian/tooling",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "lint:web": "eslint apps/web",
+    "lint:e2e": "eslint packages/e2e",
+    "lint:all": "npm run lint:web && npm run lint:e2e",
+    "typecheck:web": "npm --prefix apps/web run typecheck",
+    "typecheck:e2e": "tsc --noEmit --project packages/e2e/tsconfig.json",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,jsonc,md,yml,yaml,css,html}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,jsonc,md,yml,yaml,css,html}\"",
+    "audit:tools": "npm audit --audit-level=high",
+    "audit:web": "npm audit --prefix apps/web --audit-level=high",
+    "audit:e2e": "npm audit --prefix packages/e2e --audit-level=high"
+  },
+  "devDependencies": {
+    "@adonisjs/eslint-config": "^3.1.0",
+    "@types/node": "~26.6.2",
+    "eslint": "^10.11.0",
+    "eslint-plugin-prettier": "^5.5.7",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "prettier": "^3.9.9",
+    "typescript": "~6.0.3"
+  },
+  "overrides": {
+    "eslint-plugin-react": {
+      "eslint": "$eslint"
+    }
+  }
+}
