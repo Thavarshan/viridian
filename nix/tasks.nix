@@ -26,7 +26,12 @@ in
     };
     "install:all" = {
       exec = "echo 'Dependencies installed'";
-      after = [ "install:tools" "install:web" "install:agent" "install:e2e" ];
+      after = [
+        "install:tools"
+        "install:web"
+        "install:agent"
+        "install:e2e"
+      ];
     };
 
     "migrate:web" = {
@@ -92,7 +97,10 @@ in
     };
     "build:all" = {
       exec = "echo 'All application builds completed'";
-      after = [ "build:web" "build:agent" ];
+      after = [
+        "build:web"
+        "build:agent"
+      ];
     };
 
     "test:web" = {
@@ -111,7 +119,11 @@ in
     };
     "test:all" = {
       exec = "echo 'All application tests passed'";
-      after = [ "test:web" "test:e2e" "test:agent" ];
+      after = [
+        "test:web"
+        "test:e2e"
+        "test:agent"
+      ];
     };
 
     "lint:web" = {
@@ -128,7 +140,11 @@ in
     };
     "lint:all" = {
       exec = "echo 'All application lint checks passed'";
-      after = [ "lint:web" "lint:e2e" "lint:agent" ];
+      after = [
+        "lint:web"
+        "lint:e2e"
+        "lint:agent"
+      ];
     };
 
     "typecheck:web" = {
