@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim AS build
+FROM node:25-bookworm-slim AS build
 
 WORKDIR /workspace
 
@@ -39,7 +39,7 @@ RUN export NODE_ENV=production \
   && node ace codegen \
   && npm run build
 
-FROM node:24-bookworm-slim AS production-dependencies
+FROM node:25-bookworm-slim AS production-dependencies
 
 WORKDIR /app
 
@@ -51,7 +51,7 @@ COPY --from=build /workspace/apps/web/build/package.json ./package.json
 COPY --from=build /workspace/apps/web/build/package-lock.json ./package-lock.json
 RUN npm ci --omit=dev
 
-FROM node:24-bookworm-slim AS runtime
+FROM node:25-bookworm-slim AS runtime
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
