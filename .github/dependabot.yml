@@ -24,12 +24,6 @@ updates:
       interval: weekly
     open-pull-requests-limit: 10
 
-  - package-ecosystem: docker
-    directory: /deploy/web
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 10
-
   - package-ecosystem: uv
     directory: /apps/agent-api
     schedule:

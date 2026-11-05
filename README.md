@@ -13,14 +13,12 @@ apps/
   agent-api/            FastAPI service (Python package: agent)
 packages/
   e2e/                 Shared Playwright suites for web and agent-api
-deploy/
-  web/                 Web container build configuration
 nix/
   tasks.nix             devenv task definitions
 docs/
   architecture.md      Service boundaries and ownership
 .github/workflows/
-  ci.yml                CI and GHCR image publishing
+  ci.yml                Monorepo verification workflow
 devenv.nix              Shared Nix development environment and build output
 devenv.yaml             devenv input sources and CLI version requirement
 package.json            Shared JavaScript tooling and monorepo commands
@@ -155,8 +153,7 @@ and a devenv Nix package output.
 GitHub Actions installs Nix and devenv, runs the shared devenv tasks, validates
 the Nix Python output, and runs the PostgreSQL-backed AdonisJS tests, shared
 Playwright suites, formatting, lint, type checks, audit, and production build.
-The workflow publishes the web container image to GHCR from `main` after checks
-pass. It does not deploy the image to a host.
+Hosting and deployment infrastructure will be selected and configured later.
 
 ## Troubleshooting
 
