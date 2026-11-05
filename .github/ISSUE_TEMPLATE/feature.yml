@@ -1,0 +1,50 @@
+name: Feature request
+description: Propose a scoped capability aligned with the Viridian roadmap.
+title: '[Feature]: '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value:
+        'Check the roadmap and existing issues first. Keep proposals
+        evidence-first and describe one useful increment.'
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and user
+      description: Who needs this and what concrete problem are they facing?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: What should a user be able to do or understand?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Product area
+      options:
+        - Shared evidence
+        - Release Intelligence
+        - Incident Intelligence
+        - Agent orchestration
+        - Web application
+        - Developer tooling or documentation
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and acceptance criteria
+      description:
+        Include examples, constraints, and observable acceptance criteria.
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Security and privacy considerations
+      description:
+        Consider private repository data, logs, credentials, permissions, and
+        model uncertainty.

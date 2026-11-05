@@ -1,3 +1,13 @@
+# Archived plan — release-auditor direction
+
+This document preserves historical research from Viridian's earlier
+release-auditor-only direction. It is **not authoritative** and must not be
+used to override the current hybrid Release Intelligence and Incident
+Intelligence product direction. Use the [current roadmap](../roadmap.md),
+[product specification](../product.md), and [architecture](../architecture.md)
+as the source of truth. Historical dependency choices and implementation
+proposals below are not approved merely because they appear here.
+
 # Viridian — Complete Phased Implementation Plan
 
 Technical blueprint · Version 1.0 · November 2026

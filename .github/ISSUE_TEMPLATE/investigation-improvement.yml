@@ -1,0 +1,47 @@
+name: Investigation quality improvement
+description:
+  Improve evidence collection, finding quality, or uncertainty handling.
+title: '[Investigation]: '
+labels: ['enhancement']
+body:
+  - type: dropdown
+    id: workflow
+    attributes:
+      label: Workflow
+      options:
+        - Release Intelligence
+        - Incident Intelligence
+        - Shared evidence or correlation
+        - Evaluation and safety
+    validations:
+      required: true
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Investigation scenario
+      description:
+        Describe the input evidence and the question being investigated.
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current limitation
+    validations:
+      required: true
+  - type: textarea
+    id: desired
+    attributes:
+      label: Desired evidence-backed result
+      description:
+        State what should be observed, what remains uncertain, and how a
+        reviewer can verify it.
+    validations:
+      required: true
+  - type: textarea
+    id: fixture
+    attributes:
+      label: Synthetic fixture or evaluation case
+      description:
+        Include a safe example that does not require paid model access or live
+        production data.

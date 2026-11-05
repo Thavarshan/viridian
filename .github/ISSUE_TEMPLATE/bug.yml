@@ -1,0 +1,39 @@
+name: Bug report
+description:
+  Report incorrect or failing behavior with safe reproduction details.
+title: '[Bug]: '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value:
+        'Do not attach credentials, private repository contents, or unredacted
+        production logs.'
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Safe reproduction steps
+      description:
+        Use synthetic data where possible. Redact any sensitive values.
+    validations:
+      required: true
+  - type: input
+    id: revision
+    attributes:
+      label: Viridian revision or version
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment and relevant checks
