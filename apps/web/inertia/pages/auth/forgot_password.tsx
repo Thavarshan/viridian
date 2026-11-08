@@ -46,12 +46,15 @@ export default function ForgotPassword() {
 
       <p className="text-center text-sm text-muted-foreground">
         Remembered your password?{' '}
-        <Link
-          route="session.create"
-          className="font-medium text-foreground underline-offset-4 hover:underline"
+        <Button
+          render={<Link route="session.create" />}
+          nativeButton={false}
+          variant="link"
+          size="sm"
+          className="h-auto p-0 font-medium text-foreground"
         >
           Sign in
-        </Link>
+        </Button>
       </p>
     </div>
   );

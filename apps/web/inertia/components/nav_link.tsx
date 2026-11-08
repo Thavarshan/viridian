@@ -3,6 +3,8 @@ import { usePage } from '@inertiajs/react';
 import { type LucideIcon } from 'lucide-react';
 import { type ReactNode } from 'react';
 import { Link } from '@adonisjs/inertia/react';
+import { Button } from '@/components/ui/button';
+import { cn } from '~/lib/utils';
 
 export type NavRoute = Parameters<typeof urlFor>[0];
 
@@ -37,12 +39,14 @@ export default function NavLink({
     : path === href || path.startsWith(`${href}/`);
 
   return (
-    <Link
-      href={href}
-      className={className}
+    <Button
+      render={<Link href={href} />}
+      nativeButton={false}
+      variant={isActive ? 'secondary' : 'ghost'}
+      className={cn('h-9 justify-start text-sm', className)}
       aria-current={isActive ? 'page' : undefined}
     >
       {children}
-    </Link>
+    </Button>
   );
 }

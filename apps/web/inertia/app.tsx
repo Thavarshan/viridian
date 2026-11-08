@@ -6,7 +6,7 @@ import { resolvePageComponent } from '@adonisjs/inertia/helpers';
 import { createInertiaApp, type ResolvedComponent } from '@inertiajs/react';
 import { ThemeProvider } from 'next-themes';
 
-const appName = import.meta.env.VITE_APP_NAME || 'AdonisJS';
+const appName = import.meta.env.VITE_APP_NAME || 'Viridian';
 
 createInertiaApp({
   title: (title) => (title ? `${title} - ${appName}` : appName),

@@ -5,8 +5,10 @@ import SettingsLayout from '~/layouts/settings';
 import { Form } from '@adonisjs/inertia/react';
 import { usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import type { HTMLInputTypeAttribute, ReactNode } from 'react';
 
 type ProfileInputProps = {
@@ -63,14 +65,13 @@ function ProfileTextarea({
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
-      <textarea
+      <Textarea
         id={id}
         name={name}
         defaultValue={defaultValue}
         placeholder={placeholder}
         rows={5}
         aria-invalid={Boolean(error)}
-        className="flex min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20"
       />
       {error && (
         <p className="text-sm text-destructive" role="alert">
@@ -343,13 +344,15 @@ export default function ProfileSettings() {
             </Section>
 
             <Section title="Privacy">
-              <label className="flex items-start gap-3 rounded-md border p-4">
-                <input
+              <Label
+                htmlFor="isProfilePublic"
+                className="items-start gap-3 rounded-md border p-4"
+              >
+                <Checkbox
+                  id="isProfilePublic"
                   name="isProfilePublic"
-                  type="checkbox"
                   value="true"
                   defaultChecked={user?.isProfilePublic ?? false}
-                  className="mt-0.5 size-4 accent-primary"
                   aria-invalid={Boolean(errors.isProfilePublic)}
                 />
                 <span className="space-y-1">
@@ -368,7 +371,7 @@ export default function ProfileSettings() {
                     </span>
                   )}
                 </span>
-              </label>
+              </Label>
             </Section>
 
             <div className="flex justify-end border-t pt-6">

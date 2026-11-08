@@ -63,12 +63,15 @@ export default function ResetPassword({ token }: { token: string }) {
       </Form>
 
       <p className="text-center text-sm text-muted-foreground">
-        <Link
-          route="session.create"
-          className="font-medium text-foreground underline-offset-4 hover:underline"
+        <Button
+          render={<Link route="session.create" />}
+          nativeButton={false}
+          variant="link"
+          size="sm"
+          className="h-auto p-0 font-medium text-foreground"
         >
           Back to sign in
-        </Link>
+        </Button>
       </p>
     </div>
   );

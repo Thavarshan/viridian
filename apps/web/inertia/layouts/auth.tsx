@@ -1,10 +1,10 @@
 import Logo from '~/components/logo';
 import { type ReactNode } from 'react';
-import { ArrowUpRight, Sparkles } from 'lucide-react';
-import { Link } from '@adonisjs/inertia/react';
+import { GitBranch, ShieldCheck, Sprout } from 'lucide-react';
 import FlashToasts from '~/components/flash_toasts';
 import ThemeToggle from '~/components/theme_toggle';
-import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
@@ -22,31 +22,37 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             </section>
 
             <aside className="hidden flex-col justify-between border-l bg-muted/50 p-10 md:flex">
-              <div className="flex size-11 items-center justify-center rounded-lg bg-background text-primary shadow-sm">
-                <Sparkles className="size-5" />
-              </div>
-
-              <p className="max-w-sm text-2xl font-medium leading-relaxed tracking-tight">
-                Authentication, kept simple so you can focus on building your
-                product.
-              </p>
-
-              <div className="space-y-3">
-                <p className="font-medium">Need production-ready auth?</p>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Explore Feature Packs for production-ready full-stack
-                  components from the creators of AdonisJS.
+              <div className="space-y-6">
+                <div className="flex size-11 items-center justify-center rounded-lg bg-background text-primary shadow-sm">
+                  <Sprout className="size-5" />
+                </div>
+                <Badge variant="outline" className="w-fit">
+                  Software Delivery Intelligence
+                </Badge>
+                <p className="max-w-sm text-2xl font-medium leading-relaxed tracking-tight">
+                  Understand the evidence behind a release and the changes
+                  around an incident.
                 </p>
-                <Link
-                  href="https://plus.adonisjs.com/feature-packs"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-sm font-medium text-foreground underline-offset-4 hover:underline"
-                >
-                  Explore Feature Packs
-                  <ArrowUpRight className="size-4" />
-                </Link>
               </div>
+
+              <Card className="bg-background/70">
+                <CardContent className="space-y-4 p-4">
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      Deterministic checks establish facts before any
+                      model-assisted reasoning.
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <GitBranch className="mt-0.5 size-4 shrink-0 text-primary" />
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      The roadmap connects release history with incident
+                      investigations through shared evidence.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
             </aside>
           </div>
         </Card>

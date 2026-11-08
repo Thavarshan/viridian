@@ -9,10 +9,10 @@ export default function Signup() {
     <div className="space-y-6">
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">
-          Create your account
+          Create your Viridian account
         </h1>
         <p className="text-sm text-muted-foreground">
-          Start building with the starter kit.
+          Set up your account to access your workspace.
         </p>
       </div>
 
@@ -110,14 +110,17 @@ export default function Signup() {
         )}
       </Form>
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-xs text-muted-foreground">
         Already have an account?{' '}
-        <Link
-          route="session.create"
-          className="font-medium text-foreground underline-offset-4 hover:underline"
+        <Button
+          render={<Link route="session.create" />}
+          nativeButton={false}
+          variant="link"
+          size="sm"
+          className="h-auto p-0 font-medium text-foreground"
         >
           Sign in
-        </Link>
+        </Button>
       </p>
     </div>
   );

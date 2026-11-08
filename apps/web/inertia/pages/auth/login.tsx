@@ -10,7 +10,7 @@ export default function Login() {
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
         <p className="text-sm text-muted-foreground">
-          Sign in to continue building.
+          Sign in to your Viridian account.
         </p>
       </div>
 
@@ -39,7 +39,7 @@ export default function Login() {
                 <Label htmlFor="password">Password</Label>
                 <Link
                   route="password.forgot.create"
-                  className="text-sm font-medium text-foreground underline-offset-4 hover:underline"
+                  className="text-xs font-medium text-foreground underline-offset-4 hover:underline"
                 >
                   Forgot password?
                 </Link>
@@ -66,14 +66,17 @@ export default function Login() {
         )}
       </Form>
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-xs text-muted-foreground">
         New here?{' '}
-        <Link
-          route="new_account.create"
-          className="font-medium text-foreground underline-offset-4 hover:underline"
+        <Button
+          render={<Link route="new_account.create" />}
+          nativeButton={false}
+          variant="link"
+          size="sm"
+          className="h-auto p-0 font-medium text-foreground"
         >
           Create an account
-        </Link>
+        </Button>
       </p>
     </div>
   );

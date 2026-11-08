@@ -31,12 +31,7 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
             className="flex flex-col gap-1 rounded-lg border bg-card p-2"
           >
             {items.map(({ label, route, icon: Icon }) => (
-              <NavLink
-                key={label}
-                route={route}
-                exact
-                className="inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground"
-              >
+              <NavLink key={label} route={route} exact>
                 {Icon && <Icon className="size-4" />}
                 {label}
               </NavLink>

@@ -37,11 +37,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <nav aria-label="Main navigation" className="border-b bg-background">
         <div className="mx-auto flex h-12 w-full max-w-6xl items-center gap-1 px-4 sm:px-6">
           {nav.map(({ label, route, icon: Icon }) => (
-            <NavLink
-              key={label}
-              route={route}
-              className="inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground"
-            >
+            <NavLink key={label} route={route}>
               {Icon && <Icon className="size-4" />}
               {label}
             </NavLink>
